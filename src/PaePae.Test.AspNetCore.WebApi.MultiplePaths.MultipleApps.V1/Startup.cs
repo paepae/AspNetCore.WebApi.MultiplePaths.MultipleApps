@@ -1,10 +1,11 @@
+using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
-using PaePae.Test.AspNetCore.WebApi.MultiplePaths.MultipleApps.V1.Controllers;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace PaePae.Test.AspNetCore.WebApi.MultiplePaths.MultipleApps.V1
 {
@@ -27,6 +28,7 @@ namespace PaePae.Test.AspNetCore.WebApi.MultiplePaths.MultipleApps.V1
                     "v1",
                     new OpenApiInfo() { Version = "v1", Title = "API V1" }
                 );
+                setupAction.DocumentFilter<PathPrefixInsertDocumentFilter>("api/v1");
             });
         }
 
@@ -41,7 +43,7 @@ namespace PaePae.Test.AspNetCore.WebApi.MultiplePaths.MultipleApps.V1
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "API V1");
+                c.SwaggerEndpoint("v1/swagger.json", "API V1");
             });
 
             app.UseHttpsRedirection();
@@ -54,6 +56,27 @@ namespace PaePae.Test.AspNetCore.WebApi.MultiplePaths.MultipleApps.V1
             {
                 endpoints.MapControllers();
             });
+        }
+    }
+
+    public class PathPrefixInsertDocumentFilter : IDocumentFilter
+    {
+        private readonly string _pathPrefix;
+
+        public PathPrefixInsertDocumentFilter(string prefix)
+        {
+            this._pathPrefix = prefix;
+        }
+
+        public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
+        {
+            var paths = swaggerDoc.Paths.Keys.ToList();
+            foreach (var path in paths)
+            {
+                var pathToChange = swaggerDoc.Paths[path];
+                swaggerDoc.Paths.Remove(path);
+                swaggerDoc.Paths.Add("/" + _pathPrefix + path, pathToChange);
+            }
         }
     }
 }
